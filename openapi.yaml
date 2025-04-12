@@ -1,0 +1,507 @@
+openapi: 3.0.0
+info:
+  title: WeLocal Ecology Service API
+  description: API для управления экологическими инициативами и мероприятиями
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:10416
+    description: Локальный сервер разработки
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Initiative:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        creatorId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [CLEANUP, RECYCLING, EDUCATION, CONSERVATION, OTHER]
+        location:
+          type: object
+          properties:
+            address:
+              type: string
+            latitude:
+              type: number
+              format: float
+            longitude:
+              type: number
+              format: float
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        maxParticipants:
+          type: integer
+        currentParticipants:
+          type: integer
+        status:
+          type: string
+          enum: [PLANNED, ACTIVE, COMPLETED, CANCELLED]
+        requirements:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Participation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        initiativeId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [REGISTERED, ATTENDED, CANCELLED]
+        registrationDate:
+          type: string
+          format: date-time
+        attendanceDate:
+          type: string
+          format: date-time
+        feedback:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+paths:
+  /initiatives:
+    get:
+      summary: Получение списка экологических инициатив
+      tags:
+        - Инициативы
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+            enum: [CLEANUP, RECYCLING, EDUCATION, CONSERVATION, OTHER]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PLANNED, ACTIVE, COMPLETED, CANCELLED]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Успешное получение списка инициатив
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Initiative'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+        '401':
+          description: Не авторизован
+        '500':
+          description: Внутренняя ошибка сервера
+
+    post:
+      summary: Создание новой экологической инициативы
+      tags:
+        - Инициативы
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - category
+                - location
+                - startDate
+                - endDate
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                  enum: [CLEANUP, RECYCLING, EDUCATION, CONSERVATION, OTHER]
+                location:
+                  type: object
+                  required:
+                    - address
+                    - latitude
+                    - longitude
+                  properties:
+                    address:
+                      type: string
+                    latitude:
+                      type: number
+                      format: float
+                    longitude:
+                      type: number
+                      format: float
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                maxParticipants:
+                  type: integer
+                requirements:
+                  type: array
+                  items:
+                    type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Инициатива успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Initiative'
+        '400':
+          description: Неверные данные
+        '401':
+          description: Не авторизован
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /initiatives/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Получение информации об инициативе
+      tags:
+        - Инициативы
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Успешное получение информации об инициативе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Initiative'
+        '404':
+          description: Инициатива не найдена
+        '500':
+          description: Внутренняя ошибка сервера
+
+    put:
+      summary: Обновление информации об инициативе
+      tags:
+        - Инициативы
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                category:
+                  type: string
+                  enum: [CLEANUP, RECYCLING, EDUCATION, CONSERVATION, OTHER]
+                location:
+                  type: object
+                  properties:
+                    address:
+                      type: string
+                    latitude:
+                      type: number
+                      format: float
+                    longitude:
+                      type: number
+                      format: float
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                maxParticipants:
+                  type: integer
+                requirements:
+                  type: array
+                  items:
+                    type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                status:
+                  type: string
+                  enum: [PLANNED, ACTIVE, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: Инициатива успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Initiative'
+        '400':
+          description: Неверные данные
+        '401':
+          description: Не авторизован
+        '404':
+          description: Инициатива не найдена
+        '500':
+          description: Внутренняя ошибка сервера
+
+    delete:
+      summary: Удаление инициативы
+      tags:
+        - Инициативы
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Инициатива успешно удалена
+        '401':
+          description: Не авторизован
+        '404':
+          description: Инициатива не найдена
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /initiatives/{id}/participants:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Получение списка участников инициативы
+      tags:
+        - Участники
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [REGISTERED, ATTENDED, CANCELLED]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Успешное получение списка участников
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Participation'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+        '401':
+          description: Не авторизован
+        '404':
+          description: Инициатива не найдена
+        '500':
+          description: Внутренняя ошибка сервера
+
+    post:
+      summary: Регистрация участника на инициативу
+      tags:
+        - Участники
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [REGISTERED, ATTENDED, CANCELLED]
+                feedback:
+                  type: string
+      responses:
+        '201':
+          description: Участник успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participation'
+        '400':
+          description: Неверные данные
+        '401':
+          description: Не авторизован
+        '404':
+          description: Инициатива не найдена
+        '409':
+          description: Участник уже зарегистрирован
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /initiatives/{initiativeId}/participants/{participantId}:
+    parameters:
+      - in: path
+        name: initiativeId
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - in: path
+        name: participantId
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Получение информации об участнике
+      tags:
+        - Участники
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Успешное получение информации об участнике
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participation'
+        '404':
+          description: Инициатива или участник не найдены
+        '500':
+          description: Внутренняя ошибка сервера
+
+    put:
+      summary: Обновление информации об участнике
+      tags:
+        - Участники
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [REGISTERED, ATTENDED, CANCELLED]
+                feedback:
+                  type: string
+      responses:
+        '200':
+          description: Информация об участнике успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participation'
+        '400':
+          description: Неверные данные
+        '401':
+          description: Не авторизован
+        '404':
+          description: Инициатива или участник не найдены
+        '500':
+          description: Внутренняя ошибка сервера
+
+    delete:
+      summary: Отмена участия в инициативе
+      tags:
+        - Участники
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Участие успешно отменено
+        '401':
+          description: Не авторизован
+        '404':
+          description: Инициатива или участник не найдены
+        '500':
+          description: Внутренняя ошибка сервера 
